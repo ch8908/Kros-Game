@@ -47,8 +47,8 @@ new = function ( params )
 	------------------
 	-- Display Objects
 	------------------
-	local text = display.newText(localGroup, "Text", 0, 0, nil, 22)
-		
+	local player1ScoreView = display.newText(localGroup, "0", 220, 50, nil, 60)
+	local player2ScoreView = display.newText(localGroup, "0", 760, 50, nil, 60)
 	
 	--====================================================================--
 	-- BUTTONS
@@ -131,12 +131,15 @@ new = function ( params )
 		print("hitTargetWithPlayer:player"..player.."newTarget"..newTarget)
 		local myQueueView
 		local positionFactor = 0
+		local scoreView
 		if PLAYER_1 == player then
 			positionFactor = -1
 			myQueueView = targetQueueView
+			player1ScoreView.text = DataController:getPlayer1Score()
 		elseif PLAYER_2 == player then
 			positionFactor = 1
 			myQueueView = enemyQueueView
+			player2ScoreView.text = DataController:getPlayer2Score()
 		end
 
 		-- target explore animation
@@ -161,7 +164,6 @@ new = function ( params )
 		for i,v in ipairs(myQueueView) do
 			transition.to(v, {time=100,  x = v.x - v.width * positionFactor, onComplete = function()  end})
 		end
-
 	end
 
 	function getTargetView( target )
