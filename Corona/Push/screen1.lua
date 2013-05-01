@@ -41,7 +41,8 @@ new = function ( params )
 	local hitTargetWithPlayer = {}
 	local resolveButtonWithPlayer1 = {}
 	local resolveButtonWithPlayer2 = {}
-	local endThisRound = {}
+	local cleanQueueView = {}
+	local restartGame = {}
 
 	------------------
 	-- Global params
@@ -122,6 +123,26 @@ new = function ( params )
 	blueButtonRight.y = redButtonLeft.y
 	buttonGroup:insert(blueButtonRight)
 
+	-- Restart Button
+	local onRestart = function(event)
+		if "ended" == event.phase then
+			restartGame()
+		end
+	end
+
+	local restartButton=ui.newButton{
+		--Images for Button
+		default = "image/restart_button.png",
+		over = "image/restart_button.png",
+		--
+		onRelease = onRestart,			
+	}
+	restartButton.id = RED_TARGET
+	restartButton.x = _W * .5
+	restartButton.y = _H * .2
+	restartButton.isVisible = false
+	buttonGroup:insert(restartButton)
+
 	------------------
 	-- Functions
 	------------------
@@ -140,7 +161,7 @@ new = function ( params )
 	end
 
 	function hitTargetWithPlayer( player, newTarget )
-		print("hitTargetWithPlayer:player"..player.."newTarget"..newTarget)
+		
 		local myQueueView
 		local positionFactor = 0
 		local scoreView
@@ -239,6 +260,30 @@ new = function ( params )
 		ComputerAIController:stopHitting()
 		finishedView.text = player.." Win"
 		localGroup:insert(finishedView)
+		restartButton.isVisible = true
+	end
+
+	function cleanQueueView()
+		for k in pairs (player2TargetQueueView) do
+    		display.remove(player2TargetQueueView[k])
+    		player2TargetQueueView[k] = nil
+		end
+
+		for k in pairs (player1TargetQueueView) do
+    		display.remove(player1TargetQueueView[k])
+    		player1TargetQueueView[k] = nil
+		end
+	end
+
+	function restartGame()
+		DataController:resetData()
+		cleanQueueView()
+		createTargetQueueView()
+		restartButton.isVisible = false
+		finishedView.text = ""
+		player1ScoreView.text = "0"
+		player2ScoreView.text = "0"
+		ComputerAIController:startHittingWithFunction(resolveButtonWithPlayer2)
 	end
 
 	------------------
