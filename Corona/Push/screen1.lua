@@ -20,6 +20,11 @@ new = function ( params )
 	physics.start()
 
 	------------------
+	-- UI Constant
+	------------------
+	local FORWARD_TIME = 80
+	local HIT_DISAPPERT_TIME = 300
+	------------------
 	-- Groups
 	------------------
 	local localGroup = display.newGroup()
@@ -36,20 +41,27 @@ new = function ( params )
 	local hitTargetWithPlayer = {}
 	local resolveButtonWithPlayer1 = {}
 	local resolveButtonWithPlayer2 = {}
+	local endThisRound = {}
 
 	------------------
 	-- Global params
 	------------------
-	local targetQueueView = {}
-	local enemyQueueView = {}
+	local player1TargetQueueView = {}
+	local player2TargetQueueView = {}
 	local buttonLock = false
+
+	------------------
+	-- Register notification
+	------------------
+	local onPlayerWinNotification = {}
 
 	------------------
 	-- Display Objects
 	------------------
 	local player1ScoreView = display.newText(localGroup, "0", 220, 50, nil, 60)
 	local player2ScoreView = display.newText(localGroup, "0", 760, 50, nil, 60)
-	
+	local finishedView = display.newText("", _W * .5, _H * .5, nil, 100)
+
 	--====================================================================--
 	-- BUTTONS
 	--====================================================================--
@@ -134,17 +146,17 @@ new = function ( params )
 		local scoreView
 		if PLAYER_1 == player then
 			positionFactor = -1
-			myQueueView = targetQueueView
+			myQueueView = player1TargetQueueView
 			player1ScoreView.text = DataController:getPlayer1Score()
 		elseif PLAYER_2 == player then
 			positionFactor = 1
-			myQueueView = enemyQueueView
+			myQueueView = player2TargetQueueView
 			player2ScoreView.text = DataController:getPlayer2Score()
 		end
 
 		-- target explore animation
 		local hitTargetView = table.remove(myQueueView, 1)
-		transition.to(hitTargetView, {time=100, alpha = 0, xScale = 3.0, yScale = 3.0, onComplete = function()
+		transition.to(hitTargetView, {time=HIT_DISAPPERT_TIME, alpha = 0, xScale = 3.0, yScale = 3.0, onComplete = function()
 			display.remove(hitTargetView)
 			hitTargetView = nil
 		  end})
@@ -162,7 +174,7 @@ new = function ( params )
 
 		-- forward animation
 		for i,v in ipairs(myQueueView) do
-			transition.to(v, {time=100,  x = v.x - v.width * positionFactor, onComplete = function()  end})
+			transition.to(v, {time=FORWARD_TIME,  x = v.x - v.width * positionFactor, onComplete = function()  end})
 		end
 	end
 
@@ -204,7 +216,7 @@ new = function ( params )
 			target.x = _W * .5 - (i-1) * target.width
 			target.y = _H * .5
 
-			table.insert(targetQueueView, target)
+			table.insert(player1TargetQueueView, target)
 
 		end
 
@@ -217,11 +229,18 @@ new = function ( params )
 			target.x = _W * .5 + (i-1) * target.width
 			target.y = _H * .7
 
-			table.insert(enemyQueueView, target)
+			table.insert(player2TargetQueueView, target)
 
 		end
 
 	end
+
+	function onPlayerWinNotification(player)
+		ComputerAIController:stopHitting()
+		finishedView.text = player.." Win"
+		localGroup:insert(finishedView)
+	end
+
 	------------------
 	-- UI Objects
 	------------------
@@ -240,6 +259,7 @@ new = function ( params )
 		localGroup:insert(targetQueueGroup)
 
 		initGameQueue()
+		DataController:addWhoWinObserver(onPlayerWinNotification)
 
 		local isSimulator = "simulator" == system.getInfo("environment") 
 		-- Multitouch Events not supported on Simulator		
