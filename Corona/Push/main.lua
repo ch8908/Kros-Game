@@ -37,6 +37,8 @@ local mainGroup = display.newGroup()
 -- import 
 --====================================================================--
 ui = require("ui")
+require("Constant")
+DataController = require("DataController")
 
 ---------------------------------------------------------------
 -- Global Variable

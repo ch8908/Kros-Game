@@ -18,13 +18,6 @@ new = function ( params )
 	------------------
 	local physics = require "physics"
 	physics.start()
-	
-	------------------
-	-- Constant
-	------------------
-	local BLUE_TAEGET = "blue"
-	local RED_TARGET = "red"
-	local FORWARD_OFFSET = 20
 
 	------------------
 	-- Groups
@@ -36,20 +29,19 @@ new = function ( params )
 	------------------
 	-- Functions
 	------------------
-	local pressedRed = {}
-	local pressedBlue = {}
 	local resolveButton = {}
-	local getRandomTarget = {}
 	local getTargetView = {}
-	local initGamePath = {}
-	local createTargetQueue = {}
-	local hitTarget = {}
+	local initGameQueue = {}
+	local createTargetQueueView = {}
+	local hitTargetWithPlayer = {}
+	local resolveButtonWithPlayer1 = {}
+	local resolveButtonWithPlayer2 = {}
 
 	------------------
 	-- Global params
 	------------------
-	local targetQueue = {}
 	local targetQueueView = {}
+	local enemyQueueView = {}
 	local buttonLock = false
 
 	------------------
@@ -61,13 +53,11 @@ new = function ( params )
 	--====================================================================--
 	-- BUTTONS
 	--====================================================================--
-
-	local onRedPress = function( event )
-		
-		if "ended" == event.phase then
-			pressedRed();
+	local onButtonPressed = function ( event )
+		if "began" == event.phase then
+			-- resolveButtonWithPlayer1(event.target.id)
+			resolveButtonWithPlayer2(event.target.id)
 		end
-			
 		return true
 	end
 
@@ -76,9 +66,9 @@ new = function ( params )
 		default = "image/red_button_normal.png",
 		over = "image/red_button_pressed.png",
 		--
-		onRelease = onRedPress,			
+		onPress = onButtonPressed,			
 	}
-	redButtonLeft.id = "red"
+	redButtonLeft.id = RED_TARGET
 	redButtonLeft.x = redButtonLeft.width + 20
 	redButtonLeft.y = _H - redButtonLeft.width - 10
 	buttonGroup:insert(redButtonLeft)
@@ -88,31 +78,21 @@ new = function ( params )
 		default = "image/red_button_normal.png",
 		over = "image/red_button_pressed.png",
 		--
-		onRelease = onRedPress,			
+		onPress = onButtonPressed,			
 	}
-	redButtonRight.id = "red"
+	redButtonRight.id = RED_TARGET
 	redButtonRight.x = _W - redButtonRight.width - 20
 	redButtonRight.y = redButtonLeft.y
 	buttonGroup:insert(redButtonRight)
-
-
-	local onBluePress = function( event )
-		
-		if "ended" == event.phase then
-			pressedBlue();
-		end
-			
-		return true
-	end
 
 	local blueButtonLeft=ui.newButton{
 		--Images for Button
 		default = "image/blue_button_normal.png",
 		over = "image/blue_button_pressed.png",
 		--
-		onRelease = onBluePress,			
+		onPress = onButtonPressed,			
 	}
-	blueButtonLeft.id = "blue"
+	blueButtonLeft.id = BLUE_TAEGET
 	blueButtonLeft.x = redButtonRight.x - blueButtonLeft.width
 	blueButtonLeft.y = redButtonLeft.y
 	buttonGroup:insert(blueButtonLeft)
@@ -123,9 +103,9 @@ new = function ( params )
 		default = "image/blue_button_normal.png",
 		over = "image/blue_button_pressed.png",
 		--
-		onRelease = onBluePress,			
+		onPress = onButtonPressed,			
 	}
-	blueButtonRight.id = "blue"
+	blueButtonRight.id = BLUE_TAEGET
 	blueButtonRight.x = redButtonLeft.x + blueButtonRight.width
 	blueButtonRight.y = redButtonLeft.y
 	buttonGroup:insert(blueButtonRight)
@@ -133,60 +113,55 @@ new = function ( params )
 	------------------
 	-- Functions
 	------------------
-	function pressedBlue()
-		resolveButton(BLUE_TAEGET)
-	end
-	
-	function pressedRed()
-		resolveButton(RED_TARGET)
-	end
-
-	function resolveButton(target)
-		local queueTarget = targetQueue[1]
-		if target == queueTarget then
-			print("right");
-			hitTarget()
-		else
-			print("wrong");
+	function resolveButtonWithPlayer1(target)
+		result = DataController:player1HitTarget(target)
+		if result then
+			hitTargetWithPlayer(PLAYER_1, result)
 		end
 	end
 
-	function hitTarget()
+	function resolveButtonWithPlayer2(target)
+		result = DataController:player2HitTarget(target)
+		if result then
+			hitTargetWithPlayer(PLAYER_2, result)
+		end
+	end
 
-		table.remove(targetQueue, 1)
+	function hitTargetWithPlayer( player, newTarget )
+		print("hitTargetWithPlayer:player"..player.."newTarget"..newTarget)
+		local myQueueView
+		local positionFactor = 0
+		if PLAYER_1 == player then
+			positionFactor = -1
+			myQueueView = targetQueueView
+		elseif PLAYER_2 == player then
+			positionFactor = 1
+			myQueueView = enemyQueueView
+		end
 
-		local hitTarget = table.remove(targetQueueView, 1)
-		transition.to(hitTarget, {time=100, alpha = 0, xScale = 3.0, yScale = 3.0, onComplete = function()
-			display.remove(hitTarget)
-			hitTarget = nil
+		-- target explore animation
+		local hitTargetView = table.remove(myQueueView, 1)
+		transition.to(hitTargetView, {time=100, alpha = 0, xScale = 3.0, yScale = 3.0, onComplete = function()
+			display.remove(hitTargetView)
+			hitTargetView = nil
 		  end})
-		
-		
 
-
-		local newTarget = getRandomTarget()
-		table.insert(targetQueue, newTarget)
-
+		-- create new target view
 		local newTargetView = getTargetView(newTarget)
-		local lastTargetView = table.remove(targetQueueView)
-		newTargetView.x = lastTargetView.x - newTargetView.width
+
+		-- set new target view position and insert
+		local lastTargetView = table.remove(myQueueView)
+		newTargetView.x = lastTargetView.x + newTargetView.width * positionFactor
 		newTargetView.y = lastTargetView.y
 
-		table.insert(targetQueueView, lastTargetView)
-		table.insert(targetQueueView, newTargetView)
+		table.insert(myQueueView, lastTargetView)
+		table.insert(myQueueView, newTargetView)
 
-		for i,v in ipairs(targetQueueView) do
-			transition.to(v, {time=100,  x = v.x + v.width, onComplete = function()  end})
+		-- forward animation
+		for i,v in ipairs(myQueueView) do
+			transition.to(v, {time=100,  x = v.x - v.width * positionFactor, onComplete = function()  end})
 		end
-		
-	end
-	
-	function getRandomTarget()
-		if math.random() > 0.5 then
-			return BLUE_TAEGET
-		else
-			return RED_TARGET
-		end
+
 	end
 
 	function getTargetView( target )
@@ -205,38 +180,22 @@ new = function ( params )
 
 	end
 
-	function initGamePath()
+	function initGameQueue()
 
-		for i=1,10 do
-			table.insert(targetQueue, getRandomTarget())
-			print(targetQueue[i])
-		end
+		DataController:initTargetQueue()
 
-		createTargetQueue()
+		createTargetQueueView()
 
 	end
 
-	function createTargetQueue()
+	function createTargetQueueView()
 
-		-- local gameGround = display.newRect(targetQueueGroup, -200, 0, _W + 200, 10)
-		-- gameGround:setFillColor(255)
-		-- gameGround.x = _W * 0.5
-		-- gameGround.y = _H * 0.5
-		-- physics.addBody(gameGround, "static", {density=0.0, friction=0.0, bounce=0})
-
-		-- local stopWall = display.newRect(targetQueueGroup, 0, 0, 10, 100)
-		-- stopWall:setFillColor(255, 0, 0)
-		-- stopWall.x = _W * .6
-		-- stopWall.y = gameGround.y - gameGround.height - stopWall.height * .5
-		-- physics.addBody(stopWall, "static", {density=0.0, friction=0.0, bounce=0})
-
-		for i,v in ipairs(targetQueue) do
+		-- Player 1
+		for i,v in ipairs(DataController:getPlayer1Queue()) do
 
 			print(i,v)
 
 			local target = getTargetView(v)
-
-			-- physics.addBody(target, "dynamic", {density=0, friction=0, bounce=0 })
 
 			target.x = _W * .5 - (i-1) * target.width
 			target.y = _H * .5
@@ -245,12 +204,24 @@ new = function ( params )
 
 		end
 
+		-- Player 2
+		for i,v in ipairs(DataController:getPlayer2Queue()) do
+			print(i,v)
+
+			local target = getTargetView(v)
+
+			target.x = _W * .5 + (i-1) * target.width
+			target.y = _H * .7
+
+			table.insert(enemyQueueView, target)
+
+		end
+
 	end
 	------------------
 	-- UI Objects
 	------------------
 	
-
 	
 	--====================================================================--
 	-- INITIALIZE
@@ -264,7 +235,7 @@ new = function ( params )
 		localGroup:insert(buttonGroup)
 		localGroup:insert(targetQueueGroup)
 
-		initGamePath()
+		initGameQueue()
 
 		local isSimulator = "simulator" == system.getInfo("environment") 
 		-- Multitouch Events not supported on Simulator		
