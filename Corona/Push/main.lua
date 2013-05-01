@@ -39,6 +39,7 @@ local mainGroup = display.newGroup()
 ui = require("ui")
 require("Constant")
 DataController = require("DataController")
+ComputerAIController = require("ComputerAIController")
 
 ---------------------------------------------------------------
 -- Global Variable

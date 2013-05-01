@@ -55,8 +55,8 @@ new = function ( params )
 	--====================================================================--
 	local onButtonPressed = function ( event )
 		if "began" == event.phase then
-			-- resolveButtonWithPlayer1(event.target.id)
-			resolveButtonWithPlayer2(event.target.id)
+			resolveButtonWithPlayer1(event.target.id)
+			-- resolveButtonWithPlayer2(event.target.id)
 		end
 		return true
 	end
@@ -185,6 +185,8 @@ new = function ( params )
 		DataController:initTargetQueue()
 
 		createTargetQueueView()
+
+		ComputerAIController:startHittingWithFunction(resolveButtonWithPlayer2)
 
 	end
 
