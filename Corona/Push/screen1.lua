@@ -16,6 +16,7 @@ new = function ( params )
 	------------------
 	-- Imports
 	------------------
+	local ComputerAIController = require("ComputerAIController")
 	local physics = require "physics"
 	physics.start()
 
@@ -49,7 +50,9 @@ new = function ( params )
 	------------------
 	local player1TargetQueueView = {}
 	local player2TargetQueueView = {}
-	local buttonLock = false
+	local buttonLock1 = false
+	local player1Lock = false
+	local player2Lock = false
 
 	------------------
 	-- Register notification
@@ -61,13 +64,13 @@ new = function ( params )
 	------------------
 	local player1ScoreView = display.newText(localGroup, "0", 220, 50, nil, 60)
 	local player2ScoreView = display.newText(localGroup, "0", 760, 50, nil, 60)
-	local finishedView = display.newText("", _W * .5, _H * .5, nil, 100)
+	local finishedView = display.newText("", _W * .5, _H * .35, nil, 100)
 
 	--====================================================================--
 	-- BUTTONS
 	--====================================================================--
 	local onButtonPressed = function ( event )
-		if "began" == event.phase then
+		if "began" == event.phase and not buttonLock1 then
 			resolveButtonWithPlayer1(event.target.id)
 			-- resolveButtonWithPlayer2(event.target.id)
 		end
@@ -82,8 +85,8 @@ new = function ( params )
 		onPress = onButtonPressed,			
 	}
 	redButtonLeft.id = RED_TARGET
-	redButtonLeft.x = redButtonLeft.width + 20
-	redButtonLeft.y = _H - redButtonLeft.width - 10
+	redButtonLeft.x = redButtonLeft.width * .5 + 40
+	redButtonLeft.y = _H - redButtonLeft.width + 50
 	buttonGroup:insert(redButtonLeft)
 
 	local redButtonRight=ui.newButton{
@@ -94,7 +97,7 @@ new = function ( params )
 		onPress = onButtonPressed,			
 	}
 	redButtonRight.id = RED_TARGET
-	redButtonRight.x = _W - redButtonRight.width - 20
+	redButtonRight.x = _W - redButtonRight.width * .5 - 30
 	redButtonRight.y = redButtonLeft.y
 	buttonGroup:insert(redButtonRight)
 
@@ -106,7 +109,7 @@ new = function ( params )
 		onPress = onButtonPressed,			
 	}
 	blueButtonLeft.id = BLUE_TAEGET
-	blueButtonLeft.x = redButtonRight.x - blueButtonLeft.width
+	blueButtonLeft.x = redButtonLeft.x + blueButtonLeft.width + 20
 	blueButtonLeft.y = redButtonLeft.y
 	buttonGroup:insert(blueButtonLeft)
 
@@ -119,7 +122,7 @@ new = function ( params )
 		onPress = onButtonPressed,			
 	}
 	blueButtonRight.id = BLUE_TAEGET
-	blueButtonRight.x = redButtonLeft.x + blueButtonRight.width
+	blueButtonRight.x = redButtonRight.x - blueButtonRight.width - 20
 	blueButtonRight.y = redButtonLeft.y
 	buttonGroup:insert(blueButtonRight)
 
@@ -148,27 +151,29 @@ new = function ( params )
 	------------------
 	function resolveButtonWithPlayer1(target)
 		result = DataController:player1HitTarget(target)
-		if result then
+		if not player1Lock and result then
 			hitTargetWithPlayer(PLAYER_1, result)
 		end
 	end
 
 	function resolveButtonWithPlayer2(target)
 		result = DataController:player2HitTarget(target)
-		if result then
+		if not player2Lock and result then
 			hitTargetWithPlayer(PLAYER_2, result)
 		end
 	end
 
 	function hitTargetWithPlayer( player, newTarget )
-		
+
 		local myQueueView
 		local positionFactor = 0
 		local scoreView
 		if PLAYER_1 == player then
+			buttonLock1 = true
 			positionFactor = -1
 			myQueueView = player1TargetQueueView
 			player1ScoreView.text = DataController:getPlayer1Score()
+			timer.performWithDelay(FORWARD_TIME, function() buttonLock1 = false end, 1)
 		elseif PLAYER_2 == player then
 			positionFactor = 1
 			myQueueView = player2TargetQueueView
@@ -195,7 +200,7 @@ new = function ( params )
 
 		-- forward animation
 		for i,v in ipairs(myQueueView) do
-			transition.to(v, {time=FORWARD_TIME,  x = v.x - v.width * positionFactor, onComplete = function()  end})
+			transition.to(v, {time=FORWARD_TIME,  x = v.x - v.width * positionFactor, onComplete = function() end})
 		end
 	end
 
@@ -261,6 +266,11 @@ new = function ( params )
 		finishedView.text = player.." Win"
 		localGroup:insert(finishedView)
 		restartButton.isVisible = true
+		if PLAYER_1 == player then
+			player2Lock = true
+		else
+			player1Lock = true
+		end
 	end
 
 	function cleanQueueView()
@@ -283,6 +293,8 @@ new = function ( params )
 		finishedView.text = ""
 		player1ScoreView.text = "0"
 		player2ScoreView.text = "0"
+		player1Lock = false
+		player2Lock = false
 		ComputerAIController:startHittingWithFunction(resolveButtonWithPlayer2)
 	end
 
